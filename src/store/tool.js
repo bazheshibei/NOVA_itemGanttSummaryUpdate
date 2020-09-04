@@ -1,6 +1,4 @@
 
-import { Message } from 'element-ui'
-
 const Tool = {}
 
 /**
@@ -52,6 +50,7 @@ Tool.returnTopData = function (data = {}) {
 Tool.returnTableData = function (state) {
   const that = this
   const {
+    local,
     itemNodeData = [], // 项目甘特表信息
     jzz_data = '{}', //   基础节点时间
     order_time, //        下单时间
@@ -98,9 +97,13 @@ Tool.returnTableData = function (state) {
   })
   /* 返回 */
   const arr = []
-  arr.push(Object.assign({}, returnObj, { count: 3, rowType: 1 }))
-  arr.push(Object.assign({}, returnObj, { count: 0, rowType: 2 }))
-  arr.push(Object.assign({}, returnObj, { count: 0, rowType: 3 }))
+  if (local.from === 'neikong') {
+    arr.push(Object.assign({}, returnObj, { count: 3, rowType: 1 }))
+  } else {
+    arr.push(Object.assign({}, returnObj, { count: 3, rowType: 1 }))
+    arr.push(Object.assign({}, returnObj, { count: 0, rowType: 2 }))
+    arr.push(Object.assign({}, returnObj, { count: 0, rowType: 3 }))
+  }
   return arr
 }
 
@@ -109,92 +112,96 @@ Tool.returnTableData = function (state) {
  */
 Tool.returnTableList = function (state) {
   const {
-    tableData = [], //       合并后的表格数据
-    computedTime = false, // 是否可以重新计算
-    changeIndexId = '', //   修改的数据索引及节点ID '4_2c9xadw244'
-    order_time, //           接口：下单时间
-    deliver_date //          接口：交货日期
+    tableData = [], //     合并后的表格数据
+    isComputed = false, // 是否可以重新计算
+    changeIndexId = '', // 修改的数据索引及节点ID、节点名称 '4_2c9xadw244_毛条到厂'
+    order_time, //         接口：下单时间
+    deliver_date //        接口：交货日期
   } = state
   // console.log(222, tableData)
   const that = this
-  let startEndDateMap = {}
-  if (computedTime) {
-    const returnArr = []
+  if (isComputed) {
+    const [itemIndex, nodeId, nodeName] = changeIndexId.split('_')
     /* ----- 处理当前节点 ----- */
-    const [dataIndex, node_id] = changeIndexId.split('_')
-    tableData.forEach(function (item, index) {
-      /* 提取：变量日期（添加全部节点） */
-      startEndDateMap = Object.assign({}, JSON.parse(item.jzz_data || '{}'))
-      for (const x in item) {
-        const node = item[x]
-        if (node instanceof Object && node.node_id && node.node_code && (node.plan_enddate || node.first_plant_enddate)) {
-          startEndDateMap['${' + node.node_code + '}'] = node.plan_enddate || node.first_plant_enddate
-        }
-      }
-      if (index === parseInt(dataIndex)) {
-        const node = item[node_id]
-        /* 验证：是否为空，是否被引用 */
-        if (node.is_quote === 1 && (node.time === '' || node.time === '/')) {
-          Message.error('此节点被其他节点引用，不可为空或/')
-          const { sys_clac_formula } = node
-          node.time = that._returnTime(sys_clac_formula, startEndDateMap)
-        } else {
-          node.time = that._toggleTime(node.time)
-        }
-        /* 验证：是否超范围（自身时间用当前变更的时间，最大最小值通过公式计算） */
-        const { max_section_value, min_section_value } = node
-        const max = that._returnTime(max_section_value, startEndDateMap)
-        const min = that._returnTime(min_section_value, startEndDateMap)
-        const now = node.time
-        const { status, maxMinText } = that._isError(max, min, now, order_time, deliver_date)
-        node.error = status
-        node.maxMinText = maxMinText
-        if (node.is_audit === true && !node.is_computed) {
-          // 审核 && 不用自身去计算其他
-        } else {
-          startEndDateMap['${' + node.node_code + '}'] = node.time
-        }
-        returnArr.push(Object.assign({}, item))
-      } else {
-        returnArr.push(Object.assign({}, item))
-      }
-    })
-    /* ----- 处理其他节点 ----- */
-    returnArr.map(function (item, index) {
-      if (item.count) {
-        /* 提取：节点ID */
-        const ids = []
-        const { itemNodeDataList = [] } = item
-        itemNodeDataList.forEach(function (node) {
-          ids.push(node.node_id)
-        })
-        /* 处理节点 */
-        ids.forEach(function (id) {
-          if (index === parseInt(dataIndex) && id === node_id) {
-            // 当前节点已处理
-          } else if (index === parseInt(dataIndex)) {
-            const node = item[id]
-            const { sys_clac_formula, max_section_value, min_section_value } = node
-            const now = that._returnTime(sys_clac_formula, startEndDateMap)
-            const max = that._returnTime(max_section_value, startEndDateMap)
-            const min = that._returnTime(min_section_value, startEndDateMap)
-            const { status, maxMinText } = that._isError(max, min, now || node.time, order_time, deliver_date)
-            node.error = status
-            node.maxMinText = maxMinText
-            if (now) {
-              node.time = now
-            } else if (node.time && !now) {
-              const { node_name } = node
-              Message({ message: `${node_name} 节点计算结果为空，保留之前的输入值`, type: 'warning' })
+    tableData.map(function (item, index) {
+      if (index === parseInt(itemIndex)) {
+        /* 提取：节点：日期 */
+        const nodeCodeObj = Object.assign({}, JSON.parse(item.jzz_data || '{}'))
+        for (const x in item) {
+          const node = item[x]
+          if (node instanceof Object && (node.node_id || node.node_code)) {
+            const { time, node_code } = node
+            if (time && time !== '/') {
+              nodeCodeObj['${' + node_code + '}'] = time
             }
           }
-        })
+        }
+        /* 改变的：{ 节点名称, code, 是否根据当前节点的时间去计算其他节点 } */
+        const { node_code, isComputedOther } = item[nodeId]
+        if (isComputedOther) {
+          /* ----- 计算：根据当前节点计算其他节点 ----- */
+          for (const x in item) {
+            const node = item[x]
+            if (node instanceof Object && (node.node_id || node.node_code) && x === nodeId) { // 自身节点
+              /* 自身：验证是否报错 */
+              const { node_code, time, max_plant_enddate, min_plant_enddate } = node
+              const { status, maxMinText } = that._isError(max_plant_enddate, min_plant_enddate, time, order_time, deliver_date)
+              node.change_remaark = status ? node.change_remaark : ''
+              node.error = status
+              node.maxMinText = maxMinText
+              nodeCodeObj['${' + node_code + '}'] = time
+            }
+          }
+          for (const x in item) {
+            const node = item[x]
+            if (node instanceof Object && (node.node_id || node.node_code) && x !== nodeId) { // 其他节点
+              /* 引用到此节点的其他节点：重新计算 */
+              const { sys_clac_formula, max_section_value, min_section_value } = node
+              if (sys_clac_formula.indexOf(node_code) > 0) { // 引用了此节点
+                const now = that._returnTime(sys_clac_formula, nodeCodeObj)
+                const max = that._returnTime(max_section_value, nodeCodeObj)
+                const min = that._returnTime(min_section_value, nodeCodeObj)
+                const { status, maxMinText } = that._isError(max, min, now, order_time, deliver_date)
+                node.time = now
+                node.change_plan_time = now
+                node.change_remaark = status ? `${nodeName} 节点变更后，重新计算` : ''
+                node.max_plant_enddate = max
+                node.min_plant_enddate = min
+                node.error = status
+                node.maxMinText = maxMinText
+              }
+            }
+          }
+        } else {
+          /* 重置：当前节点时间 */
+          const { node_code, plan_enddate } = item[nodeId]
+          nodeCodeObj['${' + node_code + '}'] = plan_enddate
+          /* ----- 还原：根据当前节点计算其他节点 ----- */
+          for (const x in item) {
+            const node = item[x]
+            if (node instanceof Object && (node.node_id || node.node_code) && x !== nodeId) { // 其他节点
+              /* 引用到此节点的其他节点：重新计算 */
+              const { plan_enddate, sys_clac_formula, max_section_value, min_section_value } = node
+              if (sys_clac_formula.indexOf(node_code) > 0) { // 引用了此节点
+                const now = plan_enddate
+                const max = that._returnTime(max_section_value, nodeCodeObj)
+                const min = that._returnTime(min_section_value, nodeCodeObj)
+                const { status, maxMinText } = that._isError(max, min, now, order_time, deliver_date)
+                node.time = now
+                node.change_plan_time = now
+                node.change_remaark = ''
+                node.max_plant_enddate = max
+                node.min_plant_enddate = min
+                node.error = status
+                node.maxMinText = maxMinText
+              }
+            }
+          }
+        }
       }
     })
-    return returnArr
-  } else {
-    return tableData
   }
+  return tableData
 }
 
 /**
@@ -225,14 +232,14 @@ Tool.returnSubmitData = function (tableList) {
             is_quote, //                是否被引用
             is_change, //               是否调整
             time: change_plan_time, //  调整后时间
-            abnormal_reason, //         异常原因
+            verification_remark, //     异常原因
             frist_plan_time, //         首次提报日期
             change_remaark, //          调整/异常说明
             text
           } = node
           // console.log('node ----- ', node)
           const nodeObj = { item_node_id, node_id, first_plant_enddate, min_plant_enddate, max_plant_enddate, item_team_id, node_template_detail_id }
-          const item_node_change = { frist_plan_time, abnormal_reason, is_change, change_plan_time, change_remaark }
+          const item_node_change = { frist_plan_time, verification_remark, is_change, change_plan_time, change_remaark }
           /* ----- 验证 ----- */
           if (is_quote === 1 && (change_plan_time === '' || change_plan_time === '/')) {
             /* 报错：被引用，值为'' || ‘/’ */

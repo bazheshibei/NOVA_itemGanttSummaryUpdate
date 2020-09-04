@@ -4,17 +4,21 @@
 <template>
   <div class="pageBox">
 
-    <!-- 顶部 -->
-    <com-top></com-top>
-
-    <!-- 表格 -->
-    <com-table></com-table>
-
-    <!-- 历史审核记录 -->
-    <com-record></com-record>
+    <div class="pageTopBox">
+      <!-- 顶部 -->
+      <com-top></com-top>
+      <!-- 表格 -->
+      <com-table></com-table>
+      <!-- 历史审核记录 -->
+      <com-record v-if="local.from !== 'neikong'"></com-record>
+    </div>
 
     <!-- 下一步 -->
-    <div class="bottomBox">
+    <div class="bottomBox" v-if="local.from === 'neikong'">
+      <el-button type="primary" size="mini" plain @click="cancel">取消</el-button>
+      <el-button type="primary" size="mini" @click="submit(1)">暂存</el-button>
+    </div>
+    <div class="bottomBox" v-else>
       <el-button type="primary" size="mini" plain @click="submit(1)">暂存草稿</el-button>
       <el-button type="primary" size="mini" @click="submit(2)">提交审核</el-button>
     </div>
@@ -43,6 +47,7 @@ export default {
   components: { ComTop, ComTable, ComRecord },
   data() {
     return {
+      local: {},
       choiceTemplate: false, // 是否选择模板
       ganttTemplateList: [],
       templateId: ''
@@ -51,6 +56,7 @@ export default {
   created() {
     /* 提取本地缓存信息 */
     const local = JSON.parse(localStorage.getItem('NOVA_reject') || '{}')
+    this.local = local
     this.$store.commit('saveData', { name: 'local', obj: local })
     /** 请求：大货甘特表编辑 **/
     this.$store.dispatch('A_updateItemGanttSummary')
@@ -91,11 +97,10 @@ export default {
       /** 请求：大货甘特表编辑提交 **/
       this.$store.dispatch('A_updateNodeSummary', { audit_status })
     },
-
     /**
-     * [关闭]
+     * [取消]
      */
-    clickClose() {
+    cancel() {
       // eslint-disable-next-line
       dg.close()
     }
@@ -109,15 +114,26 @@ export default {
   height: 100%;
   font-size: 12px;
   background: #ffffff;
+  overflow-y: hidden;
+}
+
+.pageTopBox {
+  width: 100%;
+  height: calc(100% - 40px);
+  margin-bottom: 40px;
   overflow-y: auto;
 }
 
 /*** 底部 ***/
 .bottomBox {
+  width: calc(100% - 30px);
   padding: 6px 15px;
+  border-top: 1px solid #EBEEF5;
   display: flex;
   justify-content: flex-end;
-  /* border-top: 1px solid #EBEEF5; */
+  position: fixed;
+  bottom: 0;
+  right: 0;
 }
 </style>
 
@@ -161,20 +177,6 @@ td > .cell {
   text-align: center;
 }
 
-/*** 搜索 ***/
-.el-popover {
-  padding: 6px;
-}
-.el-popover > div > input {
-  height: 26px;
-  font-size: 12px !important;
-  display: flex;
-  align-items: center;
-}
-.el-popover > div > .el-input__suffix { /* input 中删除按钮 */
-  margin-top: -6px;
-}
-
 /*** 分页 ***/
 .comPagination {
   padding: 0;
@@ -187,8 +189,21 @@ td > .cell {
 }
 
 /*** 悬浮框 ***/
+.el-popover {
+  padding: 6px;
+}
+.el-popover > div > input {
+  height: 26px;
+  font-size: 12px !important;
+  display: flex;
+  align-items: center;
+}
+.el-popover > div > .el-input__suffix { /* input 中删除按钮 */
+  margin-top: -6px;
+}
 .comPopover {
   color: #409EFF;
+  font-size: 12px !important;
   background: #ecf5ff;
   border-color: #b3d8ff;
 }
