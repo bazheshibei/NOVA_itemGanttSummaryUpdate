@@ -4,7 +4,7 @@
 <template>
   <div class="recordBox">
     <div class="comTableTitle">
-      <span>历史审核记录</span>
+      <span>【历史审核记录】</span>
     </div>
 
     <el-table :data="adjusmentAuditMapList" size="mini" border>
@@ -48,13 +48,6 @@ export default {
 
 <style scoped>
 .recordBox {
-  flex: 1;
-}
-.comTableTitle {
-  color: #409EFF;
-  font-size: 14px;
-  padding: 10px;
-  background: #ecf5ff;
   flex: 1;
 }
 </style>
