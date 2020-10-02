@@ -19,7 +19,7 @@
 
       <!-- 循环节点 -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="130">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="140">
           <template slot-scope="scope">
             <div v-if="scope.row[index]">
               <div v-if="scope.row.rowType === 1">

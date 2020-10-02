@@ -157,7 +157,7 @@ Tool.returnTableList = function (state) {
             if (node instanceof Object && (node.node_id || node.node_code) && x !== nodeId) { // 其他节点
               /* 引用到此节点的其他节点：重新计算 */
               const { sys_clac_formula, max_section_value, min_section_value } = node
-              if (sys_clac_formula.indexOf('${' + node_code + '}') > 0) { // 引用了此节点
+              if (sys_clac_formula.indexOf('${' + node_code + '}') > -1) { // 引用了此节点
                 const now = that._returnTime(sys_clac_formula, nodeCodeObj)
                 const max = that._returnTime(max_section_value, nodeCodeObj)
                 const min = that._returnTime(min_section_value, nodeCodeObj)
@@ -182,7 +182,7 @@ Tool.returnTableList = function (state) {
             if (node instanceof Object && (node.node_id || node.node_code) && x !== nodeId) { // 其他节点
               /* 引用到此节点的其他节点：重新计算 */
               const { plan_enddate, sys_clac_formula, max_section_value, min_section_value } = node
-              if (sys_clac_formula.indexOf('${' + node_code + '}') > 0) { // 引用了此节点
+              if (sys_clac_formula.indexOf('${' + node_code + '}') > -1) { // 引用了此节点
                 const now = plan_enddate
                 const max = that._returnTime(max_section_value, nodeCodeObj)
                 const min = that._returnTime(min_section_value, nodeCodeObj)
@@ -276,11 +276,31 @@ Tool.returnSubmitData = function (tableList) {
  * @param {[Object]} nodeCodeObj 当前项目的节点值 { ${变量}: 自身时间 }
  */
 Tool._returnTime = function (str = '', nodeCodeObj = {}) {
-  /* 替换：变量、常量 */
-  const numStr = str.replace(/[0-9]+/g, function (num) {
-    return parseInt(num) * 60 * 60 * 24 * 1000
-  }).replace(/\$\{[\w-_:/]+\}/g, function (name) {
+  const numStr = str.replace(/\$\{[\w-_:/]+\}/g, function (name) {
     return nodeCodeObj[name] ? new Date(nodeCodeObj[name]).getTime() : 0
+  }).replace(/[0-9]+/g, function (num, index) {
+    if (num.length < 13) {
+      let isChange = true
+      let beforeStr = ''
+      let afterStr = ''
+      let numStr = 0
+      if (index !== 0) {
+        beforeStr = str[index - 1]
+      }
+      if (index + num.length !== str.length) {
+        afterStr = str[index + num.length]
+      }
+      if (beforeStr === '*' || beforeStr === '/' || afterStr === '*' || afterStr === '/') {
+        isChange = false
+      }
+      numStr = num
+      if (isChange) {
+        numStr = parseInt(numStr) * 60 * 60 * 24 * 1000
+      }
+      return `${numStr}`
+    } else {
+      return num
+    }
   })
   /* 毫秒数 转 时间 */
   // eslint-disable-next-line
@@ -314,7 +334,7 @@ Tool._toggleTime = function (time) {
     }
     /* 处理：月 */
     let addYear = 0 // 增加的年份 {[Int]}
-    let month = isNaN(parseInt(two)) ? 1 : parseInt(two) // 月 {[Int]}
+    let month = (isNaN(parseInt(two)) || two === '0') ? 1 : parseInt(two) // 月 {[Int]}
     for (let i = 0; ; i++) {
       if (month > 12) {
         addYear++
@@ -327,7 +347,7 @@ Tool._toggleTime = function (time) {
     /* 处理：日 */
     let year_2 = month < 12 ? year : year + 1
     let month_2 = month < 12 ? month + 1 : month + 1 - 12
-    let day = isNaN(parseInt(three)) ? 1 : parseInt(three) // 日 {[Int]}
+    let day = (isNaN(parseInt(three)) || three === '0') ? 1 : parseInt(three) // 日 {[Int]}
     for (let i = 0; ; i++) {
       const maxDay = new Date(new Date(`${year_2}-${month_2}`).getTime() - 1000 * 60 * 60 * 24).getDate()
       if (day > maxDay) {
