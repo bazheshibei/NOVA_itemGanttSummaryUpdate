@@ -132,7 +132,6 @@ export default {
 .bottomBox {
   width: calc(100% - 30px);
   padding: 6px 15px;
-  /* border-top: 1px solid #EBEEF5; */
   display: flex;
   justify-content: flex-end;
   position: fixed;
