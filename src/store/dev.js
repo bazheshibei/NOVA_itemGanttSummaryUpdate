@@ -13,10 +13,10 @@ const Dev = {}
  * [请求：大货甘特表编辑]
  */
 Dev.A_updateItemGanttSummary = function (state, commit) {
-  const data = JSON.parse(localStorage.getItem('大货甘特表编辑')) || {}
+  const { data } = JSON.parse(localStorage.getItem('大货甘特表编辑')) || {}
   console.log('请求：大货甘特表编辑 ----- ', data)
   //
-  const { itemSummaryItemData, itemNodeAuditDetail, itemNodeData, item_gantt_detail_id, item_gantt_id, item_id, nodeData, node_template_id } = data
+  const { itemSummaryItemData, itemNodeAuditDetail, itemNodeData, item_gantt_detail_id, item_gantt_id, item_id, nodeData, node_template_id, jzz_data } = data
   const { returnTopData, order_time, deliver_date } = Tool.returnTopData(itemSummaryItemData)
   state.itemSummaryItemData = returnTopData //         项目信息
   state.adjusmentAuditMapList = itemNodeAuditDetail // 历史审核记录
@@ -28,6 +28,7 @@ Dev.A_updateItemGanttSummary = function (state, commit) {
   state.order_time = order_time //                     下单日期
   state.deliver_date = deliver_date //                 工厂交期
   state.node_template_id = node_template_id //         甘特表模板id
+  state.jzz_data = jzz_data
   commit('returnTableData')
 }
 

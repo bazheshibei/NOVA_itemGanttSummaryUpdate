@@ -241,7 +241,7 @@ td > .cell {
   border-color: #F56C6C !important;
 }
 .comTimeInput { /* 输入框：时间 */
-  width: 110px !important;
+  width: 120px !important;
   margin: 2px 0 !important;
 }
 .comDeleteBtn { /* 删除按钮：el-tag */

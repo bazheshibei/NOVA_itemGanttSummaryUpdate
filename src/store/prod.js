@@ -26,7 +26,7 @@ Prod.A_updateItemGanttSummary = function (state, commit) {
       // console.log('请求：大货甘特表编辑 ----- ', res.data)
       // localStorage.setItem('大货甘特表编辑', JSON.stringify(res.data))
       //
-      const { itemSummaryItemData, itemNodeAuditDetail, itemNodeData, item_gantt_detail_id, item_gantt_id, item_id, nodeData, node_template_id } = data
+      const { itemSummaryItemData, itemNodeAuditDetail, itemNodeData, item_gantt_detail_id, item_gantt_id, item_id, nodeData, node_template_id, jzz_data } = data
       const { returnTopData, order_time, deliver_date } = Tool.returnTopData(itemSummaryItemData)
       state.itemSummaryItemData = returnTopData //         项目信息
       state.adjusmentAuditMapList = itemNodeAuditDetail // 历史审核记录
@@ -38,6 +38,7 @@ Prod.A_updateItemGanttSummary = function (state, commit) {
       state.order_time = order_time //                     下单日期
       state.deliver_date = deliver_date //                 工厂交期
       state.node_template_id = node_template_id //         甘特表模板id
+      state.jzz_data = jzz_data
       commit('returnTableData')
     }
   }
@@ -72,9 +73,8 @@ Prod.A_updateNodeSummary = function (state, getters, audit_status) {
       if (String(status) === '0') {
         MessageBox({ title: '数据异常', message: msg, type: 'warning', closeOnClickModal: false, closeOnPressEscape: false })
       } else {
-        const loading = Loading.service({ text: String(audit_status) === '1' ? '暂存成功' : '提交成功', spinner: 'el-icon-circle-check' })
+        Loading.service({ text: String(audit_status) === '1' ? '暂存成功' : '提交成功', spinner: 'el-icon-circle-check' })
         setTimeout(() => {
-          loading.close()
           // eslint-disable-next-line
           dg.close()
         }, 1000)

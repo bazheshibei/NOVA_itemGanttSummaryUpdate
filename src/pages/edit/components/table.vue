@@ -19,18 +19,20 @@
 
       <!-- 循环节点 -->
       <div v-for="(val, key) in nodeData" :key="'node_' + key">
-        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="140">
+        <el-table-column v-for="(item, index) in val" :key="index" :label="item" width="150">
           <template slot-scope="scope">
             <div v-if="scope.row[index]">
               <div v-if="scope.row.rowType === 1">
                 <!-- 计划完成 -->
                 <div>
-                  <!-- {{scope.row[index].node_id}} -->
-                  <!-- 8a8a806273ea5f870173ead020990003 -->
-                  <el-popover popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
+                  <!-- 计划完成：文本节点 -->
+                  <el-input v-if="scope.row[index].node_content_type === 'content'" class="comTimeInput" size="mini" placeholder="请输入文字内容" maxlength="200"
+                    v-model="scope.row[index].time" @blur="blur_table(scope.$index, index, $event, item)"
+                  ></el-input>
+                  <el-popover v-else popper-class="comPopover" :visible-arrow="false" placement="top" trigger="hover" :content="scope.row[index].maxMinText">
                     <!-- 计划完成：用户提报 -->
                     <div slot="reference" v-if="_isInputEdit(scope.row, index)">
-                      <el-input class="comTimeInput" size="mini" placeholder="请输入日期" maxlength="10"
+                      <el-input class="comTimeInput" size="mini" placeholder="请输入日期或 /" maxlength="10"
                         :class="scope.row[index].error ? 'errorInput' : ''" v-model="scope.row[index].time"
                         @blur="blur_table(scope.$index, index, $event, item)"
                       ></el-input>
@@ -46,7 +48,7 @@
               <!-- 本次调整 -->
               <div v-else-if="scope.row.rowType === 2">
                 <div v-if="_isShowInput(scope.row, index)">
-                  <el-input class="comTimeInput" :class="_isShowInput(scope.row, index) ? 'errorInput' : ''" placeholder="请输入异常原因" type="textarea"
+                  <el-input class="comTimeInput" :class="_isShowInput(scope.row, index) ? 'errorInput' : ''" placeholder="请输入异常原因" type="textarea" rows="3" :resize="'none'"
                     v-model="scope.row[index].change_remaark" size="mini"
                   ></el-input>
                 </div>
@@ -91,7 +93,7 @@
         </div>
         <div class="lineLabel">调整后日期：</div>
         <div class="lineText">
-          <el-input class="comTimeInput" :class="d_data.error && d_data.is_change === 1 ? 'errorInput' : ''" slot="reference" size="mini" placeholder="请输入日期" maxlength="10"
+          <el-input class="comTimeInput" :class="d_data.error && d_data.is_change === 1 ? 'errorInput' : ''" slot="reference" size="mini" placeholder="请输入日期或 /" maxlength="10"
             :disabled="d_data.is_change === 0 ? true : false"
             v-model="d_data.change_plan_time" @blur="blur_dialog('change_plan_time')"
           ></el-input>
@@ -154,15 +156,21 @@ export default {
      * @param {[String]} nodeName 节点名称
      */
     blur_table(index, nodeId, event, nodeName) {
-      // plan_enddate 计划时间
-      const value = Tool._toggleTime(event.target.value)
+      let { value } = event.target
       const node = this.tableList[index][nodeId]
-      const { plan_enddate } = node
-      const is_change = plan_enddate !== value ? 1 : 0
-      node.is_change = is_change
-      node.time = value
-      node.change_plan_time = is_change === 1 ? value : ''
-      node.isComputedOther = true
+      const { plan_enddate, node_content_type } = node
+      if (node_content_type === 'time') { /* 时间节点 */
+        value = Tool._toggleTime(value)
+        const is_change = plan_enddate !== value ? 1 : 0
+        node.is_change = is_change
+        node.time = value
+        node.change_plan_time = is_change === 1 ? value : ''
+        node.isComputedOther = true
+      } else if (node_content_type === 'content') { /* 文本节点 */
+        node.is_change = 0
+        node.time = value
+        node.change_plan_time = ''
+      }
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
     },
@@ -175,7 +183,7 @@ export default {
     edit(index, nodeId, nodeName) {
       const { order_time, deliver_date } = this
       const row = this.tableList[index]
-      const { error, plan_enddate, time, change_remaark, is_change = 0, isComputedOther = false, time: change_plan_time, verification_remark, max_plant_enddate, min_plant_enddate } = row[nodeId]
+      const { text, error, plan_enddate, time, change_remaark, is_change = 0, isComputedOther = false, time: change_plan_time, verification_remark, max_plant_enddate, min_plant_enddate } = row[nodeId]
       /* 赋值 */
       const d_data = {
         index, //               行索引
@@ -194,7 +202,8 @@ export default {
         is_change, //           是否调整日期
         isComputedOther, //     是否根据当前节点的时间去计算其他节点
         change_plan_time, //    调整后日期
-        change_remaark //       调整/异常原因
+        change_remaark, //      调整/异常原因
+        text
       }
       this.d_data = d_data
       this.dialogVisible = true
@@ -226,7 +235,7 @@ export default {
      */
     submit(title) {
       const { d_data, tableList } = this
-      const { index, error, nodeId, time, change_remaark, is_change, change_plan_time, isComputedOther, nodeName, plan_enddate } = d_data
+      const { index, text, error, nodeId, time, change_remaark, is_change, change_plan_time, isComputedOther, nodeName, plan_enddate } = d_data
       /* 报错：报错 && 没写'调整/异常原因' */
       if (error && !change_remaark) {
         this.$message({ showClose: true, message: '请填写 调整/异常原因 后再保存', type: 'warning' })
@@ -245,9 +254,10 @@ export default {
       node.change_remaark = change_remaark
       node.isComputedOther = isComputedOther
       node.error = error
-      if (is_change === 0) {
+      if (is_change === 0 && !error) {
         node.time = time
         node.change_plan_time = ''
+        node.change_remaark = text
       }
       this.$store.commit('saveData', { name: 'changeIndexId', obj: `${index}_${nodeId}_${nodeName}` })
       this.$store.commit('saveData', { name: 'isComputed', obj: true })
