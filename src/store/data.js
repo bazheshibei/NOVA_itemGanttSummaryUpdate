@@ -4,7 +4,7 @@
 
 接口数据：
 NOVA_reject
-{"item_id":"2c9f10b6756d5ea1017572326a46027e","item_gantt_id":"8a8a806275d908320175d91041f40009","item_gantt_detail_id":"2c9f10b675d9054d0175d9211c7a0061"}
+{"item_id":"2c9f10b6719fc74f01719fef588100a1","item_gantt_id":"8a8a806275d908320175d91041f40009","item_gantt_detail_id":"2c9f10b675d9054d0175d9211c7a0061"}
 
 
 接口返回：

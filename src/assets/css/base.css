@@ -95,6 +95,12 @@ td > .cell {
 .el-input > .el-input__inner {
   padding: 0 10px !important;
 }
+/**
+ * [日期选择器 input]
+ */
+ .el-date-editor--date > .el-input__inner {
+   padding-left: 30px !important;
+ }
 
 /**
  * [文本域 input:type=textarea]
